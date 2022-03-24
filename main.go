@@ -32,3 +32,7 @@ func main() {
 
     router.Run("localhost:8080")
 }
+
+func inviteTokenGen() string {
+	return ""
+}
