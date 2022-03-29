@@ -153,7 +153,7 @@ func TestValidatingTokenSuccessNotfound(t *testing.T) {
 }
 
 func TestValidatingTokenSuccessInvalid(t *testing.T) {
-	url := "http://localhost:8080/validate?token"
+	url := "http://localhost:8080/validate"
 	method := "POST"
 
 	request, reqErr := http.NewRequest(method, url, nil)
@@ -163,6 +163,120 @@ func TestValidatingTokenSuccessInvalid(t *testing.T) {
 
 	request.Header.Add("Authorization", "Basic YWRtaW46YWRtaW4xMjM=")
 	request.Header.Add("token", "abc")
+
+	response, resErr := http.DefaultClient.Do(request)
+	if resErr != nil {
+		t.Fatal(resErr)
+	}
+	defer response.Body.Close()
+
+	body, ioErr := ioutil.ReadAll(response.Body)
+	if ioErr != nil {
+		t.Fatal(ioErr)
+	}
+	t.Log(string(body))
+}
+
+func TestRevokingTokenSuccess(t *testing.T) {
+	url := "http://localhost:8080/revoke?token=xyz123456abc"
+	method := "POST"
+
+	request, reqErr := http.NewRequest(method, url, nil)
+	if reqErr != nil {
+		t.Fatal(reqErr)
+	}
+
+	request.Header.Add("Authorization", "Basic YWRtaW46YWRtaW4xMjM=")
+
+	response, resErr := http.DefaultClient.Do(request)
+	if resErr != nil {
+		t.Fatal(resErr)
+	}
+	defer response.Body.Close()
+
+	body, ioErr := ioutil.ReadAll(response.Body)
+	if ioErr != nil {
+		t.Fatal(ioErr)
+	}
+	t.Log(string(body))
+}
+
+func TestRevokingTokenFailedNoToken(t *testing.T) {
+	url := "http://localhost:8080/revoke"
+	method := "POST"
+
+	request, reqErr := http.NewRequest(method, url, nil)
+	if reqErr != nil {
+		t.Fatal(reqErr)
+	}
+
+	request.Header.Add("Authorization", "Basic YWRtaW46YWRtaW4xMjM=")
+
+	response, resErr := http.DefaultClient.Do(request)
+	if resErr != nil {
+		t.Fatal(resErr)
+	}
+	defer response.Body.Close()
+
+	body, ioErr := ioutil.ReadAll(response.Body)
+	if ioErr != nil {
+		t.Fatal(ioErr)
+	}
+	t.Log(string(body))
+}
+
+func TestRevokingTokenFailedNoAuth(t *testing.T) {
+	url := "http://localhost:8080/revoke?token=xyz123456abc"
+	method := "POST"
+
+	request, reqErr := http.NewRequest(method, url, nil)
+	if reqErr != nil {
+		t.Fatal(reqErr)
+	}
+
+	response, resErr := http.DefaultClient.Do(request)
+	if resErr != nil {
+		t.Fatal(resErr)
+	}
+	defer response.Body.Close()
+
+	t.Logf("Request return with status code %v", response.StatusCode)
+}
+
+func TestRevokingTokenFailedInvalidToken(t *testing.T) {
+	url := "http://localhost:8080/revoke?token=agh123a"
+	method := "POST"
+
+	request, reqErr := http.NewRequest(method, url, nil)
+	if reqErr != nil {
+		t.Fatal(reqErr)
+	}
+
+	request.Header.Add("Authorization", "Basic YWRtaW46YWRtaW4xMjM=")
+
+	response, resErr := http.DefaultClient.Do(request)
+	if resErr != nil {
+		t.Fatal(resErr)
+	}
+	defer response.Body.Close()
+
+	body, ioErr := ioutil.ReadAll(response.Body)
+	if ioErr != nil {
+		t.Fatal(ioErr)
+	}
+	t.Log(string(body))
+}
+
+func TestRevokingTokenFailedNoTokenFound(t *testing.T) {
+	url := "http://localhost:8080/revoke?token=agh123"
+	method := "POST"
+
+	request, reqErr := http.NewRequest(method, url, nil)
+	if reqErr != nil {
+		t.Fatal(reqErr)
+	}
+
+	request.Header.Add("Authorization", "Basic YWRtaW46YWRtaW4xMjM=")
 
 	response, resErr := http.DefaultClient.Do(request)
 	if resErr != nil {

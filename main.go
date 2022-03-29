@@ -30,11 +30,12 @@ func main() {
 	}))
 	closedRouter.GET("/token", genInviteToken)
 	closedRouter.GET("/tokens", seeAllTokens)
+	closedRouter.POST("/revoke", revokeToken)
 
 	// Public Endpoints
 	router.POST("/validate", validateToken)
 
-	router.Run("localhost:8080")
+	router.Run(":8080")
 }
 
 // GET: Generate and return a token with expiration date
@@ -63,6 +64,35 @@ func genInviteToken(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, randomToken)
 }
 
+// POST: Revoke token
+func revokeToken(c *gin.Context) {
+	txn := db.Txn(true)
+	defer txn.Abort()
+
+	// Get token from traidtional POST param query
+	token, hasValue := c.GetQuery("token")
+	tokenLength := len(token)
+	if tokenLength != 6 && tokenLength != 12 {
+		c.IndentedJSON(http.StatusBadRequest, "Invalid Token")
+		return
+	}
+	if hasValue {
+		lookUp, lookUpErr := txn.First("token", "id", token)
+		if lookUpErr != nil {
+			panic(lookUpErr)
+		}
+		if lookUp != nil {
+			txn.Delete("token", lookUp)
+			txn.Commit()
+			c.IndentedJSON(http.StatusOK, "Token revoked")
+		} else {
+			c.IndentedJSON(http.StatusOK, "No token found")
+		}
+	} else {
+		c.IndentedJSON(http.StatusBadRequest, "No token passed in")
+	}
+}
+
 // GET: Returns all generated tokens
 func seeAllTokens(c *gin.Context) {
 	// Create read-only transaction
@@ -83,12 +113,12 @@ func seeAllTokens(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, tempSlice)
 }
 
-// GET: Validate the passed in token
+// POST: Validate the passed in token
 func validateToken(c *gin.Context) {
 	txn := db.Txn(false)
 	defer txn.Abort()
 	/*
-		// Get token using Request Body
+		// Get token from Request Body
 		var token Token
 		decoder := json.NewDecoder(c.Request.Body)
 		decodeErr := decoder.Decode(&token)
@@ -97,9 +127,10 @@ func validateToken(c *gin.Context) {
 		}
 		token = token.Token
 	*/
-	// Get token using Header
+	// Get token from Header
 	token := c.GetHeader("token")
-	if len(token) < 6 {
+	tokenLength := len(token)
+	if tokenLength != 6 && tokenLength != 12 {
 		c.IndentedJSON(http.StatusBadRequest, "Invalid Token")
 		return
 	}
@@ -124,7 +155,7 @@ func validateToken(c *gin.Context) {
 	}
 }
 
-// Backbone stuff goes here. Create database with schema and return the context
+// Foundational parts goes from here. Create database with schema and return the context
 func initDbContext() *memdb.MemDB {
 	// Create the DB schema
 	var schema = &memdb.DBSchema{
@@ -159,16 +190,19 @@ func initDbContext() *memdb.MemDB {
 func insertPredefinedTokens() {
 	// Create a write transaction
 	txn := db.Txn(true)
+	defer txn.Abort()
 
 	// Define tokens
-	invalidToken1 := Token{Token: "abc123", ExpirationDate: time.Date(2022, 12, 17, 0, 0, 0, 651387237, time.Local).Format(time.UnixDate)}
-	validToken := Token{Token: "abc456", ExpirationDate: time.Date(2022, 3, 30, 0, 0, 0, 651387237, time.Local).Format(time.UnixDate)}
-
-	if err := txn.Insert("token", invalidToken1); err != nil {
-		panic(err)
+	presetTokens := []Token{
+		{Token: "abc123", ExpirationDate: time.Date(2022, 12, 17, 0, 0, 0, 651387237, time.Local).Format(time.UnixDate)},
+		{Token: "abc456", ExpirationDate: time.Date(2022, 3, 30, 0, 0, 0, 651387237, time.Local).Format(time.UnixDate)},
+		{Token: "xyz123456abc", ExpirationDate: time.Date(2022, 3, 30, 0, 0, 0, 651387237, time.Local).Format(time.UnixDate)},
 	}
-	if err := txn.Insert("token", validToken); err != nil {
-		panic(err)
+
+	for _, token := range presetTokens {
+		if err := txn.Insert("token", token); err != nil {
+			panic(err)
+		}
 	}
 
 	txn.Commit()
