@@ -103,7 +103,7 @@ func TestValidatingTokenSuccessExpired(t *testing.T) {
 }
 
 func TestValidatingTokenSuccessValid(t *testing.T) {
-	url := "http://localhost:8080/validate"
+	url := "http://localhost:8080/validate?token=abc456"
 	method := "POST"
 
 	request, reqErr := http.NewRequest(method, url, nil)
@@ -112,7 +112,6 @@ func TestValidatingTokenSuccessValid(t *testing.T) {
 	}
 
 	request.Header.Add("Authorization", "Basic YWRtaW46YWRtaW4xMjM=")
-	request.Header.Add("token", "abc456")
 
 	response, resErr := http.DefaultClient.Do(request)
 	if resErr != nil {

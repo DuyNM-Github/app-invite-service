@@ -127,8 +127,12 @@ func validateToken(c *gin.Context) {
 		}
 		token = token.Token
 	*/
-	// Get token from Header
-	token := c.GetHeader("token")
+	/*
+		// Get token from Header
+		token := c.GetHeader("token")
+	*/
+	// Get token via POST query param
+	token, _ := c.GetQuery("token")
 	tokenLength := len(token)
 	if tokenLength != 6 && tokenLength != 12 {
 		c.IndentedJSON(http.StatusBadRequest, "Invalid Token")
